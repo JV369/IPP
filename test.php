@@ -128,9 +128,13 @@
 				else{
 					if($arg == "test.php")
 						continue;
-					printf("Nespravny argument, koncim");
+					fprintf(STDERR,"Nespravny argument, koncim\n");
 					exit(10);
 				}
+			}
+			if(!file_exists($this->parse) || !file_exists($this->interpret) || !file_exists($this->directory)){
+				fprintf(STDERR,"Problem se soubory/adresarem\n");
+				exit(11);
 			}
 		}
 
