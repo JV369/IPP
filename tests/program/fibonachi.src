@@ -1,0 +1,18 @@
+.IPPcode18 #5 iterations of fibonachi
+createframe
+defvar TF@count
+defvar TF@old
+defvar TF@new
+defvar TF@temp
+pushframe
+move LF@count int@5
+move LF@new int@1
+move LF@old int@0
+label while
+write LF@new # 1,1,2,3,5
+ADD LF@temp LF@new LF@old
+MOVE LF@old LF@new
+MOVE LF@new LF@temp
+SUB LF@count LF@count int@1
+JUMPIFNEQ while LF@count int@0
+write LF@new #8

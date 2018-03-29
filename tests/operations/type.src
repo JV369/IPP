@@ -1,0 +1,13 @@
+.IPPcode18
+defvar GF@sumthing
+createframe
+defvar TF@uninitialized
+pushframe
+TYPE GF@sumthing string@hue
+write GF@sumthing
+TYPE GF@sumthing int@-789
+write GF@sumthing
+TYPE GF@sumthing bool@false
+write GF@sumthing
+TYPE GF@sumthing LF@uninitialized #should generate empty line
+write GF@sumthing

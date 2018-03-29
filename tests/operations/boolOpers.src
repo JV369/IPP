@@ -1,0 +1,10 @@
+.IPPcode18
+createframe
+defvar TF@boolOFsorts
+pushframe
+AND LF@boolOFsorts bool@true bool@false #false
+write LF@boolOFsorts
+OR LF@boolOFsorts bool@true LF@boolOFsorts #true
+write LF@boolOFsorts
+NOT LF@boolOFsorts LF@boolOFsorts #false
+write LF@boolOFsorts

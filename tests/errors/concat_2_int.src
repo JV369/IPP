@@ -1,0 +1,6 @@
+.IPPcode18
+createframe
+pushframe
+defvar LF@concatMiss
+concat LF@concatMiss int@52 int@-48
+write LF@concatMiss

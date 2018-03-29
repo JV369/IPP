@@ -1,0 +1,7 @@
+.IPPcode18
+defvar GF@char
+defvar GF@int
+INT2CHAR GF@char int@35
+write GF@char
+STRI2INT GF@int string@hello\032world! int@5 #should return the "space" int value
+write GF@int

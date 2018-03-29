@@ -1,0 +1,8 @@
+.IPPcode18
+defvar GF@fail
+move GF@fail string@something
+defvar GF@len
+STRLEN GF@len GF@fail
+write GF@len
+SETCHAR GF@fail GF@len string@error
+write GF@fail

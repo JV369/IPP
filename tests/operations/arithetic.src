@@ -1,0 +1,12 @@
+.IPPcode18
+createframe
+pushframe
+defvar LF@sumVar
+ADD LF@sumVar int@5 int@-2 #3
+write LF@sumVar
+SUB LF@sumVar LF@sumVar int@-2 #5
+write LF@sumVar
+MUL LF@sumVar LF@sumVar int@6 #30
+write LF@sumVar
+IDIV LF@sumVar LF@sumVar int@4 #hihihhihihihi
+write LF@sumVar #30/4 = 7.blahblahblha

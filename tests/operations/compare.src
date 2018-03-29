@@ -1,0 +1,24 @@
+.IPPcode18
+createframe
+pushframe
+defvar LF@result
+LT LF@result int@5 int@8
+write LF@result #true
+LT LF@result bool@true bool@false
+write LF@result #false
+LT LF@result string@ahoj string@b
+write LF@result #true
+
+GT LF@result int@5 int@8
+write LF@result #false
+GT LF@result bool@true bool@false
+write LF@result #true
+GT LF@result string@ahoj string@b
+write LF@result #false
+
+EQ LF@result int@8 int@8
+write LF@result #true
+EQ LF@result bool@true bool@false
+write LF@result #false
+EQ LF@result string@ahoj string@ahoj
+write LF@result #true

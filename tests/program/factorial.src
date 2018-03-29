@@ -1,0 +1,42 @@
+.IPPcode18
+createframe
+defvar TF@factor
+pushframe
+
+#3! = 6
+MOVE LF@factor int@3
+pushs LF@factor
+call factorial
+pops LF@factor
+write LF@factor
+
+#4! = 24
+MOVE LF@factor int@4
+pushs LF@factor
+call factorial
+pops LF@factor
+write LF@factor
+
+#5! = 120
+MOVE LF@factor int@5
+pushs LF@factor
+call factorial
+pops LF@factor
+write LF@factor
+jump end
+
+label factorial
+createframe
+defvar TF@iter
+defvar TF@result
+pushframe
+pops LF@iter
+MOVE LF@result int@1
+label while
+MUL LF@result LF@result LF@iter
+SUB LF@iter LF@iter int@1
+JUMPIFNEQ while LF@iter int@0
+pushs LF@result
+popframe
+return
+label end

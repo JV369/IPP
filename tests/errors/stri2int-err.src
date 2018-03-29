@@ -1,0 +1,4 @@
+.IPPcode18
+defvar GF@fail
+STRI2INT GF@fail string@something int@-10
+write GF@fail

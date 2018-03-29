@@ -1,0 +1,12 @@
+.IPPcode18
+label hue
+call hello
+jump sumLabel
+label hello
+return
+label sumLabel
+jump somewhere
+label spagett
+call spagett
+jump nowhere
+write string@noOutput

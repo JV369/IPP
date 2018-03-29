@@ -1,0 +1,12 @@
+.IPPcode18
+defvar GF@str
+CONCAT GF@str string@hello\032 string@world\033
+defvar GF@len
+STRLEN GF@len GF@str
+write GF@len
+SUB GF@len GF@len int@1
+defvar GF@char
+GETCHAR GF@char GF@str GF@len
+write GF@char
+SETCHAR GF@str int@5 string@\035
+write GF@str

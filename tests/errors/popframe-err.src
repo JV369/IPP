@@ -1,0 +1,4 @@
+.IPPcode18
+createframe
+defvar TF@err
+popframe

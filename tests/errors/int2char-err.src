@@ -1,0 +1,4 @@
+.IPPcode18
+defvar GF@fail
+INT2CHAR GF@fail int@-1
+write GF@fail
