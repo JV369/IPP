@@ -1,12 +1,24 @@
 <?php
 	/**
-	* 
+	* Projekt IPP - test.php
+	* Jmeno: Jan Vavra
+	* Login: xvavra20
+	*/
+
+	/**
+	* Trída na vygenerovani vystupniho html
+	* @param $stream - soubor pro zapis
+	* @param $countAll - pocet vsech testu
+	* @param $countPass - pocet uspesnych testu
 	*/
 	class HTMLgenerator
 	{
 		protected $stream;
 		protected $countAll;
 		protected $countPass;
+		/**
+		* Zapise nemenne tagy do souboru
+		*/
 		function __construct()
 		{
 			$this->stream = fopen("test_results.html", "w");
@@ -38,7 +50,14 @@
 			$this->countPass = 0;
 			$this->countAll = 0;
 		}
-
+		/**
+		* Vygeneruje vystup pro jeden test 
+		* @param $filename - nazev souboru stestem
+		* @param $parseRet - navratova hodnota parseru
+		* @param $intrRet - navratova hodnota interpretu
+		* @param $diffRetOut - navratova hodnota diff *.out 
+		* @param $diffRetRc - navratova hodnota diff *.rc 
+		*/
 		public function generateQuery($filename,$parseRet,$intrRet,$diffRetOut,$diffRetRc){
 			fwrite($this->stream, "<tr>\n");
 			fwrite($this->stream, "<td>".$filename."</td>\n");
@@ -71,6 +90,9 @@
 
 		}
 
+		/**
+		* Zapise ukoncujici tagy a zavre soubor
+		*/
 		public function close(){
 			fwrite($this->stream, "<tr>\n");
 			fwrite($this->stream, "<th colspan=\"5\" style=\"text-align: right;\">Shrnutí: ".$this->countPass."/".$this->countAll."</th>\n");
@@ -82,9 +104,14 @@
 		}
 	}
 
-/**
-* 
-*/
+	/**
+	* Trida pro testovani 
+	* @param $directory - adresar, ve kterem se budou hledat testy
+	* @param $htmlGen - instance tridy HTMLgenerator
+	* @param $recursive - False pokud nehledame rekurzivne v adresarich, True v opacnem pripade
+	* @param $parse - cesta k souboru parse.php
+	* @param $interpret - cesta k souboru interpret.py
+	*/	
 	class Tests
 	{
 		public $directory = './';
@@ -93,6 +120,9 @@
 		protected $parse = './parse.php';
 		protected $interpret = './interpret.py';
 
+		/**
+		* Zpracuje vstupni argumenty
+		*/
 		function __construct($arguments)
 		{
 			$this->htmlGen = new HTMLgenerator();
@@ -111,16 +141,10 @@
 				elseif (preg_match("/\-\-parse\-script\=.*/", $arg)) {
 					$argParse = explode("=", $arg,2);
 					$this->parse = $argParse[1];
-					if (!preg_match("/\/$/", $argParse[1])){
-						$this->parse .= "/";
-					}
 				}
 				elseif (preg_match("/\-\-int\-script\=.*/", $arg)) {
 					$argInt = explode("=", $arg,2);
 					$this->interpret = $argInt[1];
-					if (!preg_match("/\/$/", $argInt[1])){
-						$this->interpret .= "/";
-					}
 				}
 				elseif (preg_match("/\-\-recursive/", $arg)) {
 					$this->recursive = True;
@@ -132,12 +156,17 @@
 					exit(10);
 				}
 			}
-			if(!file_exists($this->parse) || !file_exists($this->interpret) || !file_exists($this->directory)){
+			if(!is_readable($this->parse) || !is_readable($this->interpret) || !is_readable($this->directory)){
 				fprintf(STDERR,"Problem se soubory/adresarem\n");
 				exit(11);
 			}
 		}
 
+		/**
+		* Vygeneruje soubury .in .out .rc pokud chybí
+		* @param $dir - adresar, kde se nachazi .src
+		* @param $filename - nazev souboru
+		*/
 		public function genFiles($dir,$filename){
 			$dirAtribs = scandir($dir);
 			$inFile = False;
@@ -169,39 +198,52 @@
 			}
 		}
 
+		/**
+		* Provede test
+		* @param dir - adresar, ve kterem provadime testy
+		* @param filename - nazev souboru s testem
+		*/
 		public function runTest($dir,$filename){
 			$this->genFiles($dir,$filename);
+			if(!is_readable($dir.$filename.".out") || !is_readable($dir.$filename.".rc") || !is_readable($dir.$filename.".in")){
+				fprintf(STDERR,"Problem se soubory/adresarem\n");
+				exit(11);
+			}
 			$time = time();
 			$returnDiffOut = -1;
 			$returnDiffRc = -1;
 			$returnParse = -1;
 			$returnIntr = 0;
-			exec("php5.6 ".$this->parse." < ".$dir.$filename.".src > ".$dir.$time.".xml",$dead,$returnParse);
+			exec("php5.6 \"".$this->parse."\" < \"".$dir.$filename.".src\" > \"".$dir.$time.".xml\"",$dead,$returnParse);
 			if($returnParse == 0){
-				exec("timeout 10s python3.6 ".$this->interpret." --source=".$dir.$time.".xml < ".$dir.$filename.".in > ".$dir.$time.".out",$dead,$returnIntr);
-				exec("printf ".$returnIntr." > ".$dir.$time.".rc");
-				exec("diff ".$dir.$time.".out ".$dir.$filename.".out",$dead,$returnDiffOut);
-				exec("diff ".$dir.$time.".rc ".$dir.$filename.".rc",$dead,$returnDiffRc);
+				exec("timeout 10s python3.6 \"".$this->interpret."\" --source=\"".$dir.$time.".xml\" < \"".$dir.$filename.".in\" > \"".$dir.$time.".out\"",$dead,$returnIntr);
+				exec("printf ".$returnIntr." > \"".$dir.$time.".rc\"");
+				exec("diff \"".$dir.$time.".out\" \"".$dir.$filename.".out\"",$dead,$returnDiffOut);
+				exec("diff \"".$dir.$time.".rc\" \"".$dir.$filename.".rc\"",$dead,$returnDiffRc);
 				if ($returnDiffRc != 0){
-					exec("echo >> ".$dir.$time.".rc");
-					exec("diff ".$dir.$time.".rc ".$dir.$filename.".rc",$dead,$returnDiffRc);
+					exec("echo >> \"".$dir.$time.".rc\"");
+					exec("diff \"".$dir.$time.".rc\" \"".$dir.$filename.".rc\"",$dead,$returnDiffRc);
 				}
-				exec("rm ".$dir.$time.".rc");
-				exec("rm ".$dir.$time.".out");
+				exec("rm \"".$dir.$time.".rc\"");
+				exec("rm \"".$dir.$time.".out\"");
 			}
 			else{
-				exec("printf ".$returnParse." > ".$dir.$time.".rc");
-				exec("diff ".$dir.$time.".rc ".$dir.$filename.".rc",$dead,$returnDiffRc);
+				exec("printf ".$returnParse." > \"".$dir.$time.".rc\"");
+				exec("diff \"".$dir.$time.".rc\" \"".$dir.$filename.".rc\"",$dead,$returnDiffRc);
 				if ($returnDiffRc != 0){
-					exec("echo >> ".$dir.$time.".rc");
-					exec("diff ".$dir.$time.".rc ".$dir.$filename.".rc",$dead,$returnDiffRc);
+					exec("echo >> \"".$dir.$time.".rc\"");
+					exec("diff \"".$dir.$time.".rc\" \"".$dir.$filename.".rc\"",$dead,$returnDiffRc);
 				}
-				exec("rm ".$dir.$time.".rc");
+				exec("rm \"".$dir.$time.".rc\"");
 			}
-			exec("rm ".$dir.$time.".xml");
+			exec("rm \"".$dir.$time.".xml\"");
 			$this->htmlGen->generateQuery($dir.$filename,$returnParse,$returnIntr,$returnDiffOut,$returnDiffRc);
 		}
 
+		/**
+		* Najde soubor s testem 
+		* @param dir - korenovy adresar
+		*/
 		public function findTest($dir){
 			if(!$this->recursive){
 				$dirAtribs = scandir($dir);
@@ -216,11 +258,15 @@
 				 $dirAtribs =  new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->directory));
 				 foreach ($dirAtribs as $iteration) {
 				 	$file = $dirAtribs->getSubPathName();
-				 	if(preg_match("/.*\.src$/", $file)){
+				 	if(preg_match("/.*\.src$/", "$file")){
 				 		$actDir = $dir.$dirAtribs->getSubPath()."/";
-				 		$fileName = preg_replace("/.*\//", "", $file);
-				 		$fileArr = explode(".", $fileName,2);
-						$this->runTest($actDir,$fileArr[0]);
+				 		$fileName = preg_replace("/.*\//", "", "$file");
+				 		$fileArr = array_map('strrev',explode(".", strrev($fileName),2));
+				 		if(!is_readable($actDir) || !is_writable($actDir)){
+				 			fprintf(STDERR,"Problem se soubory/adresarem\n");
+							exit(11);
+						}
+						$this->runTest($actDir,$fileArr[1]);
 					}
 				 }
 			}

@@ -75,10 +75,17 @@ class XMLoad:
 		sortedList = []
 		position = 1
 		for child in self.root:
+			found = False
 			for instr in self.root:
-				if int(instr.attrib.get('order')) == position:
+				if int(instr.attrib.get('order')) == position and not found:
 					sortedList.append(instr)
-					break
+					found = True
+				elif int(instr.attrib.get('order')) == position and found:
+					print("Chyba razeni instrukci v xml",file=sys.stderr)
+					exit(31)
+				elif int(instr.attrib.get('order')) <= 0:
+					print("Chybne cislovani",file=sys.stderr)
+					exit(31)
 			position += 1
 		return sortedList
 
@@ -88,35 +95,38 @@ class LSAnalyse:
 				'PUSHS', 'POPS', 'ADD', 'SUB', 'MUL', 'IDIV', 'LT', 'GT', 'EQ', 'AND', 'OR', 
 				'NOT', 'INT2CHAR', 'STRI2INT', 'READ', 'WRITE', 'CONCAT', 'STRLEN', 'GETCHAR', 
 				'SETCHAR', 'TYPE', 'LABEL', 'JUMP', 'JUMPIFEQ', 'JUMPIFNEQ', 'DPRINT', 'BREAK']
-	patternInt = r'(\+|-|)[0-9]+'
-	patternBool = r'(true|false)'
-	patternString = r'([^\s^\\\\^#^\x00-\x20]|\\\\[0-9][0-9][0-9])*'
-	# chyba need to fix
-	patternVar = r'(LF|GF|TF)@[\w_\-$&%\*]+'
-	patternLabel = r'[\w_\-$&%\*]+'
-	patternType = r'(int|bool|string)'
+	patternInt = '^(\+|-|)[0-9]+$'
+	patternBool = '^(true|false)$'
+	patternString = '^([^\s^\\\\^#^\x00-\x20]|\\\\[0-9][0-9][0-9])*$'
+	patternVar = '^(LF|GF|TF)@[\w_\-$&%\*]+$'
+	patternLabel = '^[\w_\-$&%\*]+$'
+	patternType = '^(int|bool|string)$'
 
 	#zkontroluje jestli instrukce existuje a jestli typy souhlasi s hodnotou
 	def analyseLex(self,instr):
 		result = instr.attrib.get('opcode') in self.keywords
 		for arg in instr:
-			if 'int' == arg.attrib.get('type'):
-				result = result and True if re.match(self.patternInt, arg.text) else False
-			elif 'string' == arg.attrib.get('type'):
-				if not arg.text:
-					result = True
+			try:
+				if 'int' == arg.attrib.get('type'):
+					result = result and True if re.search(self.patternInt, arg.text) else False
+				elif 'string' == arg.attrib.get('type'):
+					if not arg.text:
+						result = True
+					else:
+						result = result and True if re.search(self.patternString, arg.text) else False
+				elif 'bool' == arg.attrib.get('type'):
+					result = result and True if re.search(self.patternBool, arg.text) else False
+				elif 'var' == arg.attrib.get('type'):
+					result = result and True if re.search(self.patternVar, arg.text) else False
+				elif 'label' == arg.attrib.get('type'):
+					result = result and True if re.search(self.patternLabel, arg.text) else False
+				elif 'type' == arg.attrib.get('type'):
+					result = result and True if re.search(self.patternType, arg.text) else False
 				else:
-					result = result and True if re.match(self.patternString, arg.text) else False
-			elif 'bool' == arg.attrib.get('type'):
-				result = result and True if re.match(self.patternBool, arg.text) else False
-			elif 'var' == arg.attrib.get('type'):
-				result = result and True if re.match(self.patternVar, arg.text) else False
-			elif 'label' == arg.attrib.get('type'):
-				result = result and True if re.match(self.patternLabel, arg.text) else False
-			elif 'type' == arg.attrib.get('type'):
-				result = result and True if re.match(self.patternType, arg.text) else False
-			else:
-				result = False
+					result = False
+			except:
+				print("Chybejici hodnota",file=sys.stderr)
+				exit(32)
 		return result
 
 	#zkontroluje spravny pocet argumentu u instrukce
@@ -217,6 +227,72 @@ class LSAnalyse:
 		return result
 		
 
+	#zkontroluje jestli souhlasi typy s provadenou instrukce
+	def checkArgSem(self, instr, count, args):
+		actCount = 0
+		result = True
+		same = '';
+		for arg in instr:
+			if args[actCount] == 'var':
+				actCount += 1
+				continue
+			elif args[actCount] == 'same1':
+				same = arg.attrib.get('type')
+			elif  args[actCount] == 'same2':
+				if same != 'var' and arg.attrib.get('type') != 'var':
+					result = result and same == arg.attrib.get('type')
+				same = ''
+			else:
+				if arg.attrib.get('type') == 'var':
+					actCount += 1
+					continue
+				result = result and args[actCount] == arg.attrib.get('type')
+			actCount += 1
+		return result
+
+	#projde instrukce, u kterych je potreba zkontrolovat typy
+	def analyseSem(self, instr):
+		result = True
+		oper = instr.attrib.get('opcode')
+		if oper == 'ADD':
+			result = self.checkArgSem(self, instr, 3, ['var', 'int', 'int'])
+		elif oper == 'SUB':
+			result = self.checkArgSem(self, instr, 3, ['var', 'int', 'int'])
+		elif oper == 'MUL':
+			result = self.checkArgSem(self, instr, 3, ['var', 'int', 'int'])
+		elif oper == 'IDIV':
+			result = self.checkArgSem(self, instr, 3, ['var', 'int', 'int'])
+		elif oper == 'LT':
+			result = self.checkArgSem(self, instr, 3, ['var', 'same1', 'same2'])
+		elif oper == 'GT':
+			result = self.checkArgSem(self, instr, 3, ['var', 'same1', 'same2'])
+		elif oper == 'EQ':
+			result = self.checkArgSem(self, instr, 3, ['var', 'same1', 'same2'])
+		elif oper == 'AND':
+			result = self.checkArgSem(self, instr, 3, ['var', 'bool', 'bool'])
+		elif oper == 'OR':
+			result = self.checkArgSem(self, instr, 3, ['var', 'bool', 'bool'])
+		elif oper == 'NOT':
+			result = self.checkArgSem(self, instr, 2, ['var', 'bool'])
+		elif oper == 'INT2CHAR':
+			result = self.checkArgSem(self, instr, 2, ['var', 'int'])
+		elif oper == 'STRI2INT':
+			result = self.checkArgSem(self, instr, 3, ['var', 'string', 'int'])
+		elif oper == 'CONCAT':
+			result = self.checkArgSem(self, instr, 3, ['var', 'string', 'string'])
+		elif oper == 'STRLEN':
+			result = self.checkArgSem(self, instr, 2, ['var', 'string'])
+		elif oper == 'GETCHAR':
+			result = self.checkArgSem(self, instr, 3, ['var', 'string', 'int'])
+		elif oper == 'SETCHAR':
+			result = self.checkArgSem(self, instr, 3, ['var', 'int', 'string'])
+		elif oper == 'JUMPIFEQ':
+			result = self.checkArgSem(self, instr, 3, ['label', 'same1', 'same2'])
+		elif oper == 'JUMPIFNEQ':
+			result = self.checkArgSem(self, instr, 3, ['label', 'same1', 'same2'])
+		return result
+
+
 	#projde vsechny instrukce a zavola na ne kontrolovaci metody
 	def analyseInstr(self,tree):
 		for instr in tree:
@@ -224,7 +300,10 @@ class LSAnalyse:
 				return False
 
 			if self.analyseSyn(self,instr) == False:
-				return False
+				exit(31)
+
+			if self.analyseSem(self,instr) == False:
+				exit(52)
 		return True
 #konec LSAnalyse
 
@@ -279,11 +358,11 @@ class Interpret:
 		self.varExist(self,var)
 		var = var.split('@', 1)
 		if var[0] == 'GF':
-			var = self.globalFrame[var[1]]
+			var = self.globalFrame[var[1]].copy()
 		elif var[0] == 'LF':
-			var = self.currentLFrame[var[1]]
+			var = self.currentLFrame[var[1]].copy()
 		elif var[0] == 'TF':
-			var = self.tempFrame[var[1]]
+			var = self.tempFrame[var[1]].copy()
 		return var
 
 	#aktualizuje promennou v ramci podle nazvu
@@ -306,17 +385,18 @@ class Interpret:
 
 	#instrukce MOVE
 	def move(self,instr):
-		varPos = 1
 		src = 0
 		dest = 0
 		for arg in instr:
-			if varPos == 1:
+			if arg.tag == 'arg1':
 				dest = arg.text
-			elif varPos == 2:
+			elif arg.tag == 'arg2':
 				src = [arg.attrib.get('type'), arg.text]
-			varPos += 1
 		if src[0] == 'var':
 			src = self.getVar(self,src[1])
+			if src[0] == 'none':
+				print('MOVE: presun neinicializovane promenne',file=sys.stderr)
+				exit(56)
 		else:
 			src = self.convertType(src)
 
@@ -414,7 +494,7 @@ class Interpret:
 		else:
 			print(output)
 
-
+	#provede operaci nad nekteryma 
 	def doOper(self,val1,val2,oper):
 		if oper == 'ADD':
 			self.checkTypes(val1,val2,'int')
@@ -501,6 +581,7 @@ class Interpret:
 		var = 0
 		symb1 = 0
 		symb2 = 0
+		opcode = instr.attrib.get('opcode')
 		for arg in instr:
 			if arg.tag == 'arg1':
 				var = arg.text
@@ -509,6 +590,7 @@ class Interpret:
 				if typeS == 'var':
 					symb1 = self.getVar(self,arg.text)
 					if symb1[0] == 'none':
+						print(opcode +': pouziti neinicializovane promenne',file=sys.stderr)
 						exit(56)
 				else:
 					symb1 = self.convertType([typeS,arg.text])
@@ -517,6 +599,7 @@ class Interpret:
 				if typeS == 'var':
 					symb2 = self.getVar(self,arg.text)
 					if symb2[0] == 'none':
+						print(opcode +': pouziti neinicializovane promenne',file=sys.stderr)
 						exit(56)
 				else:
 					symb2 = self.convertType([typeS,arg.text])
@@ -616,21 +699,24 @@ class Interpret:
 		else:
 			self.updateVar(self,var,['string',symb[0]])
 	
+	#instrukce PUSHS
 	def pushs(self, arg):
 		temp = []
 		typeS = arg.attrib.get('type')
 		if typeS == 'var':
 			temp = self.getVar(self,arg.text)
 		else:
-			temp = [typeS,self.convertType(arg)]
+			temp = self.convertType([typeS,arg.text])
 		self.stackValue.append(temp)
 
+	#instrukce POPS
 	def pops(self,arg):
 		if len(self.stackValue) == 0:
 			print("POPS: Zasobnik je prazdny", file=sys.stderr)
 			exit(56)
 		self.updateVar(self,arg.text,self.stackValue.pop())
 
+	#instrukce BREAK
 	def breakFunc(self,position,count):
 		print('Aktualni pozice v kodu: ' + position,file=sys.stderr)
 		print(' ',file=sys.stderr)
@@ -652,7 +738,7 @@ class Interpret:
 		print('Aktivni docasny ramec ' + str(self.TFAlloc),file=sys.stderr)
 		print('Aktivni lokalni ramec ' + str(self.LFAlloc),file=sys.stderr)
 
-
+	#instrukce READ
 	def read(self,instr):
 		var = 0
 		typeS = 0
@@ -670,7 +756,7 @@ class Interpret:
 				else:
 					string = False
 			elif typeS == 'int':
-				if re.match(r'(\+|-|)[0-9]+',string):
+				if re.search('^(\+|-|)[0-9]+$',string):
 					string = int(string)
 				else:
 					string = 0
@@ -681,7 +767,7 @@ class Interpret:
 				string = 0
 		self.updateVar(self,var,[typeS,string])
 
-
+	#instrukce JUMPIF(EQ|NEQ)
 	def jumpIF(self,instr):
 		label = 0
 		symb1 = 0
@@ -714,17 +800,17 @@ class Interpret:
 		else:
 			return int(instr.attrib.get('order')) - 1
 
-	######## require more testing ###########
+	#instrukce CALL
 	def call(self,arg,position):
 		self.callStack.append(position)
 		return self.labels[arg.text]
 
+	#instrukce RETURN
 	def returnFunc(self):
 		if len(self.callStack) == 0:
 			print('RETURN: prazdny zasobnik volani',file=sys.stderr)
 			exit(56)
 		return self.callStack.pop()
-	######## require more testing ###########
 
 	#hlavni smycka interpretu
 	def program(self,instrList):
